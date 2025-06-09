@@ -2,46 +2,46 @@
 <html lang="pt-BR" data-theme="light">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Scanner Web</title>
-
-  <!-- CSS -->
   <link rel="stylesheet" href="style.css" />
-
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js" defer></script>
-  <!-- jsPDF, SortableJS, OpenCV.js -->
-   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" defer></script>
-   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js" defer></script>
-   <script async src="https://docs.opencv.org/4.7.0/opencv.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.css" />
 </head>
 <body>
   <header>
     <h1>Scanner Web</h1>
+    <button id="toggleTheme" aria-label="Alternar Tema">🌓</button>
   </header>
 
   <main>
-    <section id="cameraSection" aria-label="Seção da câmera">
+    <section class="video-wrapper">
       <video id="camera" autoplay playsinline></video>
-      <canvas id="canvas" hidden></canvas>
-      <button id="captureBtn" aria-label="Capturar imagem">📸 Capturar</button>
-    </section>
-
-    <section id="docsSection" aria-label="Documentos capturados">
-      <h2>Documentos</h2>
+      <canvas id="overlay" class="overlay"></canvas>
+      <div class="controls">
+        <button id="captureBtn">📸 Capturar</button>
+        <button id="generatePdfBtn">💾 PDF/JPG</button>
+        <button id="shareWhatsApp">📲 WhatsApp</button>
+      </div>
       <div id="progressBar" hidden>
         <div id="progress"></div>
       </div>
-      <ul id="docsList" class="sortable-list" aria-live="polite"></ul>
     </section>
 
-    <button id="generatePdfBtn" aria-label="Gerar arquivo PDF">📄 Gerar PDF</button>
+    <section id="docsSection">
+      <h2>Documentos</h2>
+      <div id="docsList" class="sortable-list"></div>
+    </section>
+
+    <section id="cropContainer"></section>
   </main>
 
-  <footer>
-    <p>&copy; Desenvolvido por Jonas Isaias. Todos os direitos reservados.</p>
-  </footer>
+  <footer>&copy; Desenvolvido por Jonas Isaias. Todos os direitos reservados.</footer>
 
-  <!-- App principal -->
-  <script src="app.js" defer></script>
+  <!-- Bibliotecas externas -->
+  <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.js"></script>
+  <script async src="https://docs.opencv.org/4.7.0/opencv.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
