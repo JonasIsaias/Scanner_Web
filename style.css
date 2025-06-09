@@ -1,0 +1,229 @@
+:root {
+    --bg: #fff;
+    --fg: #000;
+    --primary: #1e88e5;
+    --primary-dark: #1565c0;
+    --border: #ccc;
+  }
+  
+  [data-theme="dark"] {
+    --bg: #121212;
+    --fg: #eee;
+    --border: #444;
+  }
+  
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+      Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border);
+    background-color: var(--bg);
+  }
+  
+  h1 {
+    font-weight: 600;
+    font-size: 1.5rem;
+  }
+  
+  button {
+    padding: 0.75rem 1.25rem;
+    margin: 0.5rem 0.25rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    background-color: var(--primary);
+    color: white;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+  }
+  
+  button:hover,
+  button:focus {
+    background-color: var(--primary-dark);
+    outline: none;
+  }
+  
+  #toggleTheme {
+    background: none;
+    color: var(--fg);
+    font-size: 1.5rem;
+    padding: 0;
+    margin: 0;
+    border: none;
+  }
+  
+  main {
+    flex: 1;
+    padding: 1rem;
+    max-width: 720px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  
+  #cameraSection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  #camera {
+    width: 100%;
+    max-width: 600px;
+    aspect-ratio: 4/3;
+    background: #000;
+    border-radius: 8px;
+    object-fit: cover;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+  }
+  
+  #docsSection {
+    margin-bottom: 1.5rem;
+  }
+  
+  #docsSection h2 {
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    font-size: 1.25rem;
+    border-bottom: 2px solid var(--primary);
+    padding-bottom: 0.25rem;
+  }
+  
+  #progressBar {
+    width: 100%;
+    background: #eee;
+    border-radius: 4px;
+    height: 8px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+  }
+  
+  #progress {
+    height: 100%;
+    width: 0%;
+    background: var(--primary);
+    border-radius: 4px;
+    transition: width 0.15s ease-in-out;
+  }
+  
+  #docsList {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .sortable-list .doc {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.5rem;
+    background: var(--bg);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    user-select: none;
+  }
+  
+  .sortable-list .doc.dragging {
+    opacity: 0.6;
+  }
+  
+  .doc img {
+    width: 100px;
+    height: auto;
+    border-radius: 6px;
+    object-fit: cover;
+    flex-shrink: 0;
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .doc textarea {
+    flex: 1;
+    resize: vertical;
+    min-height: 80px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.5rem;
+    font-family: monospace, monospace;
+    font-size: 0.9rem;
+    background: var(--bg);
+    color: var(--fg);
+    transition: border-color 0.3s ease;
+  }
+  
+  .doc textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 8px var(--primary);
+  }
+  
+  .doc button {
+    align-self: start;
+    background: #e53935;
+    transition: background-color 0.3s ease;
+  }
+  
+  .doc button:hover,
+  .doc button:focus {
+    background: #b71c1c;
+    outline: none;
+  }
+  
+  footer {
+    text-align: center;
+    padding: 1rem 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    background-color: var(--bg-footer, #f5f5f5);
+    border-top: 1px solid #ccc;
+    position: relative; /* Para não cobrir conteúdo */
+    margin-top: 2rem;
+  }
+  
+  /* Ajuste para modo escuro */
+  [data-theme="dark"] footer {
+    background-color: #222;
+    color: #aaa;
+    border-top: 1px solid #444;
+  }
+  
+  
+  @media (max-width: 600px) {
+    .sortable-list .doc {
+      flex-direction: column;
+      align-items: center;
+    }
+  
+    .doc img {
+      width: 80%;
+      max-width: 300px;
+    }
+  
+    .doc textarea {
+      width: 100%;
+    }
+  
+    button {
+      width: 100%;
+    }
+  }  
