@@ -77,17 +77,14 @@
     width: 100%;
   }
   
-  #cameraSection {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1.5rem;
+  .video-wrapper {
+    position: relative;
+    max-width: 600px;
+    margin: auto;
   }
   
   #camera {
     width: 100%;
-    max-width: 600px;
     aspect-ratio: 4/3;
     background: #000;
     border-radius: 8px;
@@ -95,16 +92,19 @@
     box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
   }
   
-  #docsSection {
-    margin-bottom: 1.5rem;
+  canvas.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
   }
   
-  #docsSection h2 {
-    margin-bottom: 0.75rem;
-    font-weight: 600;
-    font-size: 1.25rem;
-    border-bottom: 2px solid var(--primary);
-    padding-bottom: 0.25rem;
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 0.5rem;
   }
   
   #progressBar {
@@ -112,7 +112,7 @@
     background: #eee;
     border-radius: 4px;
     height: 8px;
-    margin-bottom: 1rem;
+    margin-top: 1rem;
     overflow: hidden;
   }
   
@@ -121,18 +121,27 @@
     width: 0%;
     background: var(--primary);
     border-radius: 4px;
-    transition: width 0.15s ease-in-out;
+    transition: width 0.2s ease-in-out;
+  }
+  
+  #docsSection {
+    margin-top: 2rem;
+  }
+  
+  #docsSection h2 {
+    font-weight: 600;
+    font-size: 1.25rem;
+    border-bottom: 2px solid var(--primary);
+    margin-bottom: 1rem;
   }
   
   #docsList {
-    list-style: none;
-    padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 1rem;
   }
   
-  .sortable-list .doc {
+  .doc {
     display: flex;
     align-items: flex-start;
     gap: 1rem;
@@ -141,11 +150,6 @@
     padding: 0.5rem;
     background: var(--bg);
     box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-    user-select: none;
-  }
-  
-  .sortable-list .doc.dragging {
-    opacity: 0.6;
   }
   
   .doc img {
@@ -154,33 +158,30 @@
     border-radius: 6px;
     object-fit: cover;
     flex-shrink: 0;
-    box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
   }
   
   .doc textarea {
     flex: 1;
-    resize: vertical;
     min-height: 80px;
+    resize: vertical;
     border: 1px solid var(--border);
     border-radius: 6px;
     padding: 0.5rem;
-    font-family: monospace, monospace;
-    font-size: 0.9rem;
+    font-family: monospace;
     background: var(--bg);
     color: var(--fg);
-    transition: border-color 0.3s ease;
+    font-size: 0.9rem;
   }
   
   .doc textarea:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 8px var(--primary);
+    box-shadow: 0 0 4px var(--primary);
   }
   
   .doc button {
-    align-self: start;
+    align-self: flex-start;
     background: #e53935;
-    transition: background-color 0.3s ease;
   }
   
   .doc button:hover,
@@ -191,25 +192,22 @@
   
   footer {
     text-align: center;
-    padding: 1rem 0;
+    padding: 1rem;
     font-size: 0.9rem;
-    color: var(--text-secondary);
-    background-color: var(--bg-footer, #f5f5f5);
-    border-top: 1px solid #ccc;
-    position: relative; /* Para não cobrir conteúdo */
-    margin-top: 2rem;
+    color: #666;
+    background-color: var(--bg);
+    border-top: 1px solid var(--border);
+    margin-top: auto;
   }
   
-  /* Ajuste para modo escuro */
   [data-theme="dark"] footer {
     background-color: #222;
     color: #aaa;
     border-top: 1px solid #444;
   }
   
-  
   @media (max-width: 600px) {
-    .sortable-list .doc {
+    .doc {
       flex-direction: column;
       align-items: center;
     }
@@ -219,10 +217,7 @@
       max-width: 300px;
     }
   
-    .doc textarea {
-      width: 100%;
-    }
-  
+    .doc textarea,
     button {
       width: 100%;
     }
