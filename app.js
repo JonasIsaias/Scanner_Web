@@ -1,230 +1,200 @@
+// Seletores de elementos DOM
 const cam = document.getElementById('camera');
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
-const docList = document.getElementById('docsList');
-const progBar = document.getElementById('progressBar');
-const prog = document.getElementById('progress');
 const captureBtn = document.getElementById('captureBtn');
 const genBtn = document.getElementById('generatePdfBtn');
-const toggleTheme = document.getElementById('toggleTheme');
+const list = document.getElementById('docsList');
+const progBar = document.getElementById('progressBar');
+const prog = document.getElementById('progress');
 
-let docs = JSON.parse(localStorage.getItem('docs') || '[]');
+let docs = [];
 
-// Tema (modo claro/escuro) com persistência
-function applyTheme(theme) {
-  document.documentElement.setAttribute('data-theme', theme);
-  localStorage.setItem('theme', theme);
-  toggleTheme.textContent = theme === 'dark' ? '☀️' : '🌙';
-}
-
-toggleTheme.onclick = () => {
-  const current = document.documentElement.getAttribute('data-theme');
-  applyTheme(current === 'dark' ? 'light' : 'dark');
-};
-
-applyTheme(
-  localStorage.getItem('theme') ||
-  (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-);
-
-// Salva no localStorage e re-renderiza lista
+// Persistência e renderização
 function saveRender() {
   localStorage.setItem('docs', JSON.stringify(docs));
   renderList();
 }
 
-// Renderiza lista de documentos com edição e exclusão
 function renderList() {
-  docList.innerHTML = '';
+  list.innerHTML = '';
   docs.forEach((doc, i) => {
-    const li = document.createElement('li');
-    li.className = 'doc';
-    li.setAttribute('data-id', i);
+    const div = document.createElement('div');
+    div.className = 'doc';
 
-    // Miniatura da imagem
     const img = document.createElement('img');
     img.src = doc.img;
     img.alt = `Documento ${i + 1}`;
+    img.title = 'Clique para ampliar';
+    img.onclick = () => window.open(doc.img, '_blank');
 
-    // Textarea para edição do texto OCR
-    const ta = document.createElement('textarea');
-    ta.value = doc.text;
-    ta.setAttribute('aria-label', `Texto do documento ${i + 1}`);
-    ta.onchange = () => {
-      docs[i].text = ta.value;
+    const textarea = document.createElement('textarea');
+    textarea.value = doc.text || '';
+    textarea.placeholder = 'Texto reconhecido...';
+    textarea.onchange = () => {
+      docs[i].text = textarea.value;
       saveRender();
     };
 
-    // Botão excluir
     const del = document.createElement('button');
-    del.textContent = 'Excluir';
-    del.setAttribute('aria-label', `Excluir documento ${i + 1}`);
+    del.textContent = '🗑️';
     del.onclick = () => {
       docs.splice(i, 1);
       saveRender();
     };
 
-    li.append(img, ta, del);
-    docList.appendChild(li);
+    div.appendChild(img);
+    div.appendChild(textarea);
+    div.appendChild(del);
+    list.appendChild(div);
   });
-}
 
-// Inicializa drag and drop com Sortable.js
-document.addEventListener('DOMContentLoaded', () => {
-  new Sortable(docList, {
+  Sortable.create(list, {
     animation: 150,
-    onEnd: evt => {
-      const [moved] = docs.splice(evt.oldIndex, 1);
-      docs.splice(evt.newIndex, 0, moved);
+    onEnd: () => {
+      docs = [...list.children].map(el => {
+        const i = el.querySelector('img').src;
+        const t = el.querySelector('textarea').value;
+        return { img: i, text: t };
+      });
       saveRender();
     }
   });
-});
+}
 
-// Acesso à câmera do dispositivo
-navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-  .then(stream => {
-    cam.srcObject = stream;
-  })
-  .catch(err => {
-    alert('Erro ao acessar a câmera: ' + err.message);
-  });
-
-// Função para tentar corte automático com OpenCV.js e fallback para imagem original
+// Processamento da imagem com OpenCV e OCR
 async function autoCropOCR(dataUrl) {
-  // Espera OpenCV pronto
-  if (!cv || !cv.imread) {
-    throw new Error('OpenCV.js não carregado');
-  }
+  return new Promise((res, rej) => {
+    const imgEl = new Image();
+    imgEl.src = dataUrl;
 
-  await new Promise(resolve => {
-    if (cv['onRuntimeInitialized']) {
-      cv['onRuntimeInitialized'] = () => resolve();
-    } else {
-      resolve();
-    }
-  });
-
-  return new Promise(res => {
-    const img = new Image();
-    img.src = dataUrl;
-    img.onload = async () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
+    imgEl.onload = async () => {
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = imgEl.width;
+      tempCanvas.height = imgEl.height;
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCtx.drawImage(imgEl, 0, 0);
 
       let croppedDataUrl = dataUrl;
 
       try {
-        // Processamento OpenCV para corte e perspectiva
-        const src = cv.imread(canvas);
+        await new Promise(resolve => {
+          if (cv && cv.imread) resolve();
+          else {
+            const check = setInterval(() => {
+              if (cv && cv.imread) {
+                clearInterval(check);
+                resolve();
+              }
+            }, 100);
+          }
+        });
+
+        // OpenCV processamento de corte
+        const src = cv.imread(tempCanvas);
         const gray = new cv.Mat();
-        const edges = new cv.Mat();
+        cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+        const blur = new cv.Mat();
+        cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
+        const edged = new cv.Mat();
+        cv.Canny(blur, edged, 75, 200);
+
         const contours = new cv.MatVector();
         const hierarchy = new cv.Mat();
+        cv.findContours(edged, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
 
-        cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
-        cv.GaussianBlur(gray, gray, new cv.Size(5, 5), 0);
-        cv.Canny(gray, edges, 75, 200);
-
-        cv.findContours(edges, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
-
+        let biggest = null;
         let maxArea = 0;
-        let maxContour = null;
-
         for (let i = 0; i < contours.size(); i++) {
-          let cnt = contours.get(i);
-          const area = cv.contourArea(cnt, false);
-          if (area > maxArea) {
-            maxArea = area;
-            maxContour = cnt;
+          const cnt = contours.get(i);
+          const area = cv.contourArea(cnt);
+          if (area > 1000) {
+            const peri = cv.arcLength(cnt, true);
+            const approx = new cv.Mat();
+            cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
+            if (approx.rows === 4 && area > maxArea) {
+              biggest = approx;
+              maxArea = area;
+            }
           }
         }
 
-        if (!maxContour) throw new Error('Nenhum contorno encontrado');
-
-        const peri = cv.arcLength(maxContour, true);
-        const approx = new cv.Mat();
-        cv.approxPolyDP(maxContour, approx, 0.02 * peri, true);
-
-        if (approx.rows === 4) {
-          // Quatro pontos - aplicando perspectiva
-          let pts = [];
+        if (biggest) {
+          const pts = [];
           for (let i = 0; i < 4; i++) {
-            pts.push({ x: approx.intPtr(i, 0)[0], y: approx.intPtr(i, 0)[1] });
+            pts.push({ x: biggest.intAt(i, 0), y: biggest.intAt(i, 1) });
           }
 
-          // Ordenar os pontos (top-left, top-right, bottom-right, bottom-left)
           pts.sort((a, b) => a.y - b.y);
-          let top = pts.slice(0, 2).sort((a, b) => a.x - b.x);
-          let bottom = pts.slice(2, 4).sort((a, b) => a.x - b.x);
-          const ordered = [top[0], top[1], bottom[1], bottom[0]];
+          const [tl, tr] = pts.slice(0, 2).sort((a, b) => a.x - b.x);
+          const [bl, br] = pts.slice(2).sort((a, b) => a.x - b.x);
+
+          const maxWidth = Math.max(
+            Math.hypot(tr.x - tl.x, tr.y - tl.y),
+            Math.hypot(br.x - bl.x, br.y - bl.y)
+          );
+          const maxHeight = Math.max(
+            Math.hypot(bl.x - tl.x, bl.y - tl.y),
+            Math.hypot(br.x - tr.x, br.y - tr.y)
+          );
 
           const srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
-            ordered[0].x, ordered[0].y,
-            ordered[1].x, ordered[1].y,
-            ordered[2].x, ordered[2].y,
-            ordered[3].x, ordered[3].y
+            tl.x, tl.y,
+            tr.x, tr.y,
+            br.x, br.y,
+            bl.x, bl.y
           ]);
           const dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
             0, 0,
-            img.width, 0,
-            img.width, img.height,
-            0, img.height
+            maxWidth, 0,
+            maxWidth, maxHeight,
+            0, maxHeight
           ]);
 
           const M = cv.getPerspectiveTransform(srcTri, dstTri);
-          let warped = new cv.Mat();
-          cv.warpPerspective(src, warped, M, new cv.Size(img.width, img.height));
+          const dst = new cv.Mat();
+          const dsize = new cv.Size(maxWidth, maxHeight);
+          cv.warpPerspective(src, dst, M, dsize, cv.INTER_LINEAR, cv.BORDER_CONSTANT, new cv.Scalar());
 
-          cv.imshow(canvas, warped);
-          croppedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+          cv.imshow(tempCanvas, dst);
+          croppedDataUrl = tempCanvas.toDataURL('image/jpeg', 0.9);
 
-          // Liberar memória
-          src.delete(); gray.delete(); edges.delete();
-          contours.delete(); hierarchy.delete(); approx.delete();
-          srcTri.delete(); dstTri.delete(); warped.delete();
-        } else {
-          // Caso não tenha 4 cantos, fallback
-          src.delete(); gray.delete(); edges.delete();
-          contours.delete(); hierarchy.delete(); approx.delete();
-          throw new Error('Não foram detectados 4 cantos para corte.');
+          src.delete(); gray.delete(); blur.delete(); edged.delete();
+          contours.delete(); hierarchy.delete(); biggest.delete();
+          dst.delete(); srcTri.delete(); dstTri.delete(); M.delete();
         }
       } catch (e) {
-        console.warn('Corte automático falhou:', e.message);
-        // fallback: já está usando dataUrl original
+        console.warn('⚠️ OpenCV não disponível. Usando imagem original.', e);
       }
 
-      // OCR com Tesseract.js e barra de progresso
+      // OCR com Tesseract.js v4
       progBar.hidden = false;
       prog.style.width = '0%';
 
-      const worker = Tesseract.createWorker({
-        logger: m => {
-          if (m.status === 'recognizing text') {
-            prog.style.width = `${Math.floor(m.progress * 100)}%`;
+      try {
+        const { data: { text } } = await Tesseract.recognize(tempCanvas, 'por+eng', {
+          logger: m => {
+            if (m.status === 'recognizing text') {
+              prog.style.width = `${Math.floor(m.progress * 100)}%`;
+            }
           }
-        }
-      });
+        });
 
-      await worker.load();
-      await worker.loadLanguage('por+eng');
-      await worker.initialize('por+eng');
-
-      // Usar canvas atual para reconhecimento
-      const { data: { text } } = await worker.recognize(canvas);
-
-      await worker.terminate();
-
-      progBar.hidden = true;
-
-      res({ img: croppedDataUrl, text });
+        progBar.hidden = true;
+        res({ img: croppedDataUrl, text });
+      } catch (e) {
+        progBar.hidden = true;
+        console.error('Erro no OCR:', e);
+        rej(e);
+      }
     };
   });
 }
 
-// Botão capturar: tira foto, processa e armazena documento
+// Captura de imagem
 captureBtn.onclick = async () => {
+  console.log('📸 Botão capturado clicado');
+
   const w = cam.videoWidth;
   const h = cam.videoHeight;
 
@@ -238,12 +208,12 @@ captureBtn.onclick = async () => {
   ctx.drawImage(cam, 0, 0, w, h);
 
   const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-
   captureBtn.disabled = true;
   captureBtn.textContent = 'Processando...';
 
   try {
     const { img, text } = await autoCropOCR(dataUrl);
+    console.log('✅ OCR e corte concluídos');
     docs.push({ img, text });
     saveRender();
   } catch (e) {
@@ -254,14 +224,13 @@ captureBtn.onclick = async () => {
   }
 };
 
-// Botão gerar PDF
+// Geração de PDF
 genBtn.onclick = () => {
   if (!docs.length) {
     alert('Nenhum documento capturado.');
     return;
   }
 
-  // Usar jsPDF via global window.jspdf.jsPDF
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF();
 
@@ -273,5 +242,15 @@ genBtn.onclick = () => {
   pdf.save(`documentos_${Date.now()}.pdf`);
 };
 
-// Inicializa a lista com documentos salvos
+// Inicialização
 renderList();
+
+navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+  .then(stream => {
+    cam.srcObject = stream;
+    cam.play();
+  })
+  .catch(e => {
+    console.error('Erro ao acessar câmera:', e);
+    alert('Erro ao acessar câmera. Verifique permissões.');
+  });
